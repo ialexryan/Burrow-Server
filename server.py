@@ -62,8 +62,8 @@ if __name__ == '__main__':
     p.add_argument("--udplen","-u",type=int,default=0,
                     metavar="<udplen>",
                     help="Max UDP packet length (default:0)")
-    p.add_argument("--tcp",action='store_true',default=False,
-                    help="TCP server (default: UDP only)")
+    p.add_argument("--notcp",action='store_true',default=False,
+                    help="UDP server only (default: UDP and TCP)")
     p.add_argument("--log",default="request,reply,truncated,error",
                     help="Log hooks to enable (default: +request,+reply,+truncated,+error,-recv,-send,-data)")
     p.add_argument("--log-prefix",action='store_true',default=False,
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     print("Starting Fixed Resolver (%s:%d) [%s]" % (
                         args.address or "*",
                         args.port,
-                        "UDP/TCP" if args.tcp else "UDP"))
+                        "UDP" if args.notcp else "UDP/TCP"))
 
     print("Using fixed records:")
     for rr in resolver.fixedrrs:
@@ -95,7 +95,7 @@ if __name__ == '__main__':
                            logger=logger)
     udp_server.start_thread()
 
-    if args.tcp:
+    if not args.notcp:
         tcp_server = DNSServer(resolver,
                                port=args.port,
                                address=args.address,
