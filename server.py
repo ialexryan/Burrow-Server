@@ -18,7 +18,6 @@ ns2.burrow.tech. 60 IN A 131.215.172.230
 test123.burrow.tech. 60 IN TXT 'I am test123.'
 bacon.burrow.tech. 60 IN TXT "Bacon ipsum dolor amet frankfurter filet mignon tenderloin, jowl short loin corned beef jerky beef ribs spare ribs. Kevin bresaola venison jowl filet mignon. Turducken pork belly pig ball tip tail, alcatra brisket leberkas tri-tip" "fatback jerky pancetta filet mignon tenderloin. Landjaeger cupim drumstick rump shankle doner cow. Meatball prosciutto tri-tip, doner bresaola landjaeger ball tip andouille pork chop cupim ground round ribeye drumstick pastrami. " "Cow tenderloin picanha prosciutto pancetta, fatback andouille shoulder. Pig drumstick cow, landjaeger short loin chuck beef ribs. Andouille swine leberkas jowl ribeye doner biltong cupim ball tip prosciutto corned beef. T-bone sirloin filet" " mignon tongue alcatra shank pig short ribs pork belly tenderloin ribeye. Beef picanha pork t-bone bacon tail salami fatback frankfurter ribeye doner turducken. Porchetta doner rump short loin turducken tenderloin sausage pork. Tenderloin t-bone" "tri-tip shankle. Tri-tip ground round pork belly, landjaeger ham pancetta bresaola meatball ribeye strip steak pig alcatra. Alcatra sausage tri-tip biltong shoulder bresaola. Shankle swine cow, sausage brisket short loin picanha kielbasa" " turkey strip steak t-bone tongue hamburger. Shank ham hock pork loin, fatback alcatra andouille prosciutto short loin pastrami shankle hamburger. Boudin ham hamburger filet mignon bacon drumstick. Pork chop prosciutto capicola "
 """
-wildcard_zone = "whatgoesheredoesntmatter. 60 IN TXT 'Hello world!'"
 
 def generate_TXT_zone_line(host, text):
     assert(host.endswith(".burrow.tech."))
@@ -35,7 +34,6 @@ class FixedResolver(BaseResolver):
     def __init__(self):
         # Parse RRs
         self.fixedrrs = RR.fromZone(fixed_zone)
-        self.wildcardrrs = RR.fromZone(wildcard_zone)
 
     def resolve(self,request,handler):
         reply = request.reply()
@@ -49,11 +47,13 @@ class FixedResolver(BaseResolver):
                 print("Yay, we found a matching record! " + str(a.rname))
                 reply.add_answer(a)
         if (not found):
-            print("Darn, we didn't find a matching record. Using wildcard response.")
-            assert(len(self.wildcardrrs) == 1)
-            a = copy.copy(self.wildcardrrs[0])
-            a.rname = qname
-            reply.add_answer(a)
+            print("Darn, we didn't find a matching record. Using parrot response.")
+            zone = generate_TXT_zone_line(str(qname), "Hello world! I am " + str(qname))
+            print("We generated zone " + zone)
+            rrs = RR.fromZone(zone)
+            assert(len(rrs) == 1)
+            rr = rrs[0]
+            reply.add_answer(rr)
         return reply
 
 if __name__ == '__main__':
@@ -88,9 +88,6 @@ if __name__ == '__main__':
 
     print("Using fixed records:")
     for rr in resolver.fixedrrs:
-        print("    | ",rr.toZone().strip(),sep="")
-    print("And wildcard record:")
-    for rr in resolver.wildcardrrs:
         print("    | ",rr.toZone().strip(),sep="")
     print()
 
