@@ -20,6 +20,14 @@ bacon.burrow.tech. 60 IN TXT "Bacon ipsum dolor amet frankfurter filet mignon te
 """
 wildcard_zone = "whatgoesheredoesntmatter. 60 IN TXT 'Hello world!'"
 
+def generate_TXT_zone_line(host, text):
+    assert(host.endswith(".burrow.tech."))
+    # Split the text into 250-char substrings if necessary
+    split_text = [text[i:i+250] for i in range(0, len(text), 250)]
+    prepared_text = '"' + '" "'.join(split_text) + '"'
+    zone = host + " 60 IN TXT " + prepared_text
+    return zone
+
 class FixedResolver(BaseResolver):
     """
         Respond with fixed response to some requests, and wildcard to all others.
