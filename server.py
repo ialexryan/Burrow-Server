@@ -10,7 +10,7 @@ from __future__ import print_function
 import copy
 
 from dnslib import RR
-from dnslib.server import DNSServer,DNSHandler,BaseResolver,DNSLogger
+from dnslib.server import DNSServer, DNSHandler, BaseResolver, DNSLogger
 
 fixed_zone = """
 ns1.burrow.tech. 60 IN A 131.215.172.230
