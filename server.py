@@ -9,6 +9,7 @@ from dnslib.label import DNSLabel
 from dnslib.server import DNSServer, DNSHandler, BaseResolver, DNSLogger
 
 fixed_zone = """
+burrow.tech. 60 IN TXT 'Go away!!'
 ns1.burrow.tech. 60 IN A 131.215.172.230
 ns2.burrow.tech. 60 IN A 131.215.172.230
 constant.test.burrow.tech. 60 IN TXT 'I am the constant record.'
