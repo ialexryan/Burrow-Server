@@ -49,7 +49,7 @@ class FixedResolver(BaseResolver):
     def __init__(self):
         # Parse RRs
         self.fixedrrs = RR.fromZone(fixed_zone)
-        self.active_sessions = {}
+        self.active_transmissions = {}
 
     def resolve(self,request,handler):
         reply = request.reply()
@@ -63,33 +63,32 @@ class FixedResolver(BaseResolver):
                 print("Found a fixed record for " + str(a.rname))
                 reply.add_answer(a)
         if (not found_fixed_rr):
-            print("Did not find a fixed record for " + str(qname))
             zone = ""
             sub = get_subdomain(qname)
             if (sub.matchSuffix("new")):
-                session_id = uuid.uuid4().hex[-8:]
-                self.active_sessions[session_id] = ""
-                print("Active sessions are: " + str(self.active_sessions))
-                response_dict = {'success': True, 'session_id': session_id}
+                transmission_id = uuid.uuid4().hex[-8:]
+                self.active_transmissions[transmission_id] = ""
+                print("Active transmissions are: " + str(self.active_transmissions))
+                response_dict = {'success': True, 'transmission_id': transmission_id}
                 zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
             elif (sub.matchSuffix("close")):
-                session_to_close = sub.stripSuffix("close").label[-1]
+                transmission_to_close = sub.stripSuffix("close").label[-1]
                 try:
-                    del self.active_sessions[session_to_close]
-                    print("Active sessions are: " + str(self.active_sessions))
+                    del self.active_transmissions[transmission_to_close]
+                    print("Active transmissions are: " + str(self.active_transmissions))
                     zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': True}))
                 except KeyError:
-                    print("ERROR: tried to close a session that isn't open.")
+                    print("ERROR: tried to close a transmission that isn't open.")
                     zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': False}))
             elif (sub.matchSuffix("continue")):
-                session_to_continue = sub.stripSuffix("continue").label[-1]
-                data = str(sub.stripSuffix(session_to_continue + ".continue")).strip(".")
+                transmission_to_continue = sub.stripSuffix("continue").label[-1]
+                data = str(sub.stripSuffix(transmission_to_continue + ".continue")).strip(".")
                 try:
-                    self.active_sessions[session_to_continue] += data
-                    print("Active sessions are: " + str(self.active_sessions))
+                    self.active_transmissions[transmission_to_continue] += data
+                    print("Active transmissions are: " + str(self.active_transmissions))
                     zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': True}))
                 except KeyError:
-                    print("ERROR: tried to continue a session that isn't open.")
+                    print("ERROR: tried to continue a transmission that isn't open.")
                     zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': False}))
             else:
                 response_text = "You are " + str(sub)
