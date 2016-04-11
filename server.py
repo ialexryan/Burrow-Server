@@ -11,8 +11,18 @@ from dnslib.server import DNSServer, DNSHandler, BaseResolver, DNSLogger
 fixed_zone = """
 ns1.burrow.tech. 60 IN A 131.215.172.230
 ns2.burrow.tech. 60 IN A 131.215.172.230
-test123.burrow.tech. 60 IN TXT 'I am test123.'
-bacon.burrow.tech. 60 IN TXT "Bacon ipsum dolor amet frankfurter filet mignon tenderloin, jowl short loin corned beef jerky beef ribs spare ribs. Kevin bresaola venison jowl filet mignon. Turducken pork belly pig ball tip tail, alcatra brisket leberkas tri-tip" "fatback jerky pancetta filet mignon tenderloin. Landjaeger cupim drumstick rump shankle doner cow. Meatball prosciutto tri-tip, doner bresaola landjaeger ball tip andouille pork chop cupim ground round ribeye drumstick pastrami. " "Cow tenderloin picanha prosciutto pancetta, fatback andouille shoulder. Pig drumstick cow, landjaeger short loin chuck beef ribs. Andouille swine leberkas jowl ribeye doner biltong cupim ball tip prosciutto corned beef. T-bone sirloin filet" " mignon tongue alcatra shank pig short ribs pork belly tenderloin ribeye. Beef picanha pork t-bone bacon tail salami fatback frankfurter ribeye doner turducken. Porchetta doner rump short loin turducken tenderloin sausage pork. Tenderloin t-bone" "tri-tip shankle. Tri-tip ground round pork belly, landjaeger ham pancetta bresaola meatball ribeye strip steak pig alcatra. Alcatra sausage tri-tip biltong shoulder bresaola. Shankle swine cow, sausage brisket short loin picanha kielbasa" " turkey strip steak t-bone tongue hamburger. Shank ham hock pork loin, fatback alcatra andouille prosciutto short loin pastrami shankle hamburger. Boudin ham hamburger filet mignon bacon drumstick. Pork chop prosciutto capicola "
+constant.test.burrow.tech. 60 IN TXT 'I am the constant record.'
+bacon.test.burrow.tech. 60 IN TXT "Bacon ipsum dolor amet frankfurter filet mignon tenderloin, jowl short loin corned beef jerky beef ribs spare ribs. Kevin bresaola venison jowl filet mignon. Turducken pork belly pig ball tip tail, alcatra brisket leberkas tri-tip " "fatback jerky pancetta filet mignon tenderloin. Landjaeger cupim drumstick rump shankle doner cow. Meatball prosciutto tri-tip, doner bresaola landjaeger ball tip andouille pork chop cupim ground round ribeye drumstick pastrami. " "Cow tenderloin picanha prosciutto pancetta, fatback andouille shoulder. Pig drumstick cow, landjaeger short loin chuck beef ribs. Andouille swine leberkas jowl ribeye doner biltong cupim ball tip prosciutto corned beef. T-bone sirloin filet" " mignon tongue alcatra shank pig short ribs pork belly tenderloin ribeye. Beef picanha pork t-bone bacon tail salami fatback frankfurter ribeye doner turducken. Porchetta doner rump short loin turducken tenderloin sausage pork. Tenderloin t-bone " "tri-tip shankle. Tri-tip ground round pork belly, landjaeger ham pancetta bresaola meatball ribeye strip steak pig alcatra. Alcatra sausage tri-tip biltong shoulder bresaola. Shankle swine cow, sausage brisket short loin picanha kielbasa" " turkey strip steak t-bone tongue hamburger. Shank ham hock pork loin, fatback alcatra andouille prosciutto short loin pastrami shankle hamburger. Boudin ham hamburger filet mignon bacon drumstick. Pork chop prosciutto capicola"
+babies.test.burrow.tech. 60 IN TXT "Hello world 1"
+babies.test.burrow.tech. 60 IN TXT "Hello world 2"
+babies.test.burrow.tech. 60 IN TXT "Hello world 3"
+babies.test.burrow.tech. 60 IN TXT "Hello world 4"
+babies.test.burrow.tech. 60 IN TXT "Hello world 5"
+babies.test.burrow.tech. 60 IN TXT "Hello world 6"
+babies.test.burrow.tech. 60 IN TXT "Hello world 7"
+babies.test.burrow.tech. 60 IN TXT "Hello world 8"
+babies.test.burrow.tech. 60 IN TXT "Hello world 9"
+
 """
 
 def get_subdomain(fqdn):
