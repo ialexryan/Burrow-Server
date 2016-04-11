@@ -8,12 +8,6 @@ from dnslib import RR
 from dnslib.label import DNSLabel
 from dnslib.server import DNSServer, DNSHandler, BaseResolver, DNSLogger
 
-fixed_zone_filenames = ["primary.txt", "tests.txt"]
-fixed_zone = "".join(map(
-    lambda filename: open("fixed_zone/" + filename).read(),
-    fixed_zone_filenames
-))
-
 def get_subdomain(fqdn):
     assert(isinstance(fqdn, DNSLabel))
     assert(fqdn.matchSuffix("burrow.tech"))
@@ -46,7 +40,7 @@ class FixedResolver(BaseResolver):
         Respond with fixed response to some requests, and wildcard to all others.
     """
     def __init__(self):
-        # Parse RRs
+        fixed_zone = open("fixed_zone/primary.txt").read() + open("fixed_zone/tests.txt").read()
         self.fixedrrs = RR.fromZone(fixed_zone)
         self.active_transmissions = {}
 
