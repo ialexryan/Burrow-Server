@@ -36,6 +36,11 @@ def generate_TXT_zone_line(host, text):
     prepared_text = '"' + '" "'.join(split_text) + '"\n'
     zone = host + " 60 IN TXT " + prepared_text
     return zone
+def generate_TXT_zone(host, text_list):
+    output = ""
+    for t in text_list:
+       output += generate_TXT_zone_line(host, t)
+    return output 
 
 class FixedResolver(BaseResolver):
     """
@@ -44,31 +49,48 @@ class FixedResolver(BaseResolver):
     def __init__(self):
         # Parse RRs
         self.fixedrrs = RR.fromZone(fixed_zone)
+        self.active_sessions = {}
 
     def resolve(self,request,handler):
         reply = request.reply()
         qname = request.q.qname
        
-        found = False 
+        found_fixed_rr = False
         for rr in self.fixedrrs:
             a = copy.copy(rr)
             if (a.rname == qname):
-                found = True
+                found_fixed_rr = True
                 print("Found a fixed record for " + str(a.rname))
                 reply.add_answer(a)
-        if (not found):
+        if (not found_fixed_rr):
             print("Did not find a fixed record for " + str(qname))
-            response_text = ""
+            zone = ""
             sub = get_subdomain(qname)
             if (sub.matchSuffix("new")):
-                print("Got a request for a new session.")
-                response_dict = {}
-                response_dict['success'] = 'true'
-                response_dict['session_id'] = uuid.uuid4().hex[-8:]
-                response_list = dict_to_attributes(response_dict)
-                zone = ""
-                for r in response_list:
-                    zone += generate_TXT_zone_line(str(qname), r)
+                session_id = uuid.uuid4().hex[-8:]
+                self.active_sessions[session_id] = ""
+                print("Active sessions are: " + str(self.active_sessions))
+                response_dict = {'success': True, 'session_id': session_id}
+                zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
+            elif (sub.matchSuffix("close")):
+                session_to_close = sub.stripSuffix("close").label[-1]
+                try:
+                    del self.active_sessions[session_to_close]
+                    print("Active sessions are: " + str(self.active_sessions))
+                    zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': True}))
+                except KeyError:
+                    print("ERROR: tried to close a session that isn't open.")
+                    zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': False}))
+            elif (sub.matchSuffix("continue")):
+                session_to_continue = sub.stripSuffix("continue").label[-1]
+                data = str(sub.stripSuffix(session_to_continue + ".continue")).strip(".")
+                try:
+                    self.active_sessions[session_to_continue] += data
+                    print("Active sessions are: " + str(self.active_sessions))
+                    zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': True}))
+                except KeyError:
+                    print("ERROR: tried to continue a session that isn't open.")
+                    zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': False}))
             else:
                 response_text = "You are " + str(sub)
                 zone = generate_TXT_zone_line(str(qname), response_text)
