@@ -65,20 +65,20 @@ class FixedResolver(BaseResolver):
         if (not found_fixed_rr):
             zone = ""
             sub = get_subdomain(qname)
-            if (sub.matchSuffix("new")):
+            if (sub.matchSuffix("begin")):
                 transmission_id = uuid.uuid4().hex[-8:]
                 self.active_transmissions[transmission_id] = ""
                 print("Active transmissions are: " + str(self.active_transmissions))
                 response_dict = {'success': True, 'transmission_id': transmission_id}
                 zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
-            elif (sub.matchSuffix("close")):
-                transmission_to_close = sub.stripSuffix("close").label[-1]
+            elif (sub.matchSuffix("end")):
+                transmission_to_end = sub.stripSuffix("end").label[-1]
                 try:
-                    del self.active_transmissions[transmission_to_close]
+                    del self.active_transmissions[transmission_to_end]
                     print("Active transmissions are: " + str(self.active_transmissions))
                     zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': True}))
                 except KeyError:
-                    print("ERROR: tried to close a transmission that isn't open.")
+                    print("ERROR: tried to end a transmission that doesn't exist.")
                     zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': False}))
             elif (sub.matchSuffix("continue")):
                 transmission_to_continue = sub.stripSuffix("continue").label[-1]
@@ -88,7 +88,7 @@ class FixedResolver(BaseResolver):
                     print("Active transmissions are: " + str(self.active_transmissions))
                     zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': True}))
                 except KeyError:
-                    print("ERROR: tried to continue a transmission that isn't open.")
+                    print("ERROR: tried to continue a transmission that doesn't exist.")
                     zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': False}))
             else:
                 response_text = "You are " + str(sub)
