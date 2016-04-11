@@ -1,6 +1,8 @@
 from __future__ import print_function
 
 import copy
+import json
+import uuid
 
 from dnslib import RR
 from dnslib.label import DNSLabel
@@ -18,11 +20,20 @@ def get_subdomain(fqdn):
     assert(fqdn.matchSuffix("burrow.tech"))
     return fqdn.stripSuffix("burrow.tech")
 
+def dict_to_attributes(d):
+    # Implement the standard way of representing attributes
+    # in TXT records, see RFC 1464
+    # Essentially turns {a: b, c: d} into ["a=b","c=d"]
+    output = []
+    for (key, value) in d.iteritems():
+        output.append(str(key) + "=" + str(value))
+    return output
+
 def generate_TXT_zone_line(host, text):
     assert(host.endswith(".burrow.tech."))
     # Split the text into 250-char substrings if necessary
     split_text = [text[i:i+250] for i in range(0, len(text), 250)]
-    prepared_text = '"' + '" "'.join(split_text) + '"'
+    prepared_text = '"' + '" "'.join(split_text) + '"\n'
     zone = host + " 60 IN TXT " + prepared_text
     return zone
 
@@ -46,18 +57,27 @@ class FixedResolver(BaseResolver):
                 print("Found a fixed record for " + str(a.rname))
                 reply.add_answer(a)
         if (not found):
+            print("Did not find a fixed record for " + str(qname))
+            response_text = ""
             sub = get_subdomain(qname)
-            print(sub)
-            print("Did not find a fixed record for " + str(sub))
             if (sub.matchSuffix("new")):
                 print("Got a request for a new session.")
-                
-            zone = generate_TXT_zone_line(str(qname), "Hello world! I am " + str(qname))
-            print("We generated zone " + zone)
+                response_dict = {}
+                response_dict['success'] = 'true'
+                response_dict['session_id'] = uuid.uuid4().hex[-8:]
+                response_list = dict_to_attributes(response_dict)
+                zone = ""
+                for r in response_list:
+                    zone += generate_TXT_zone_line(str(qname), r)
+            else:
+                response_text = "You are " + str(sub)
+                zone = generate_TXT_zone_line(str(qname), response_text)
+            print("We generated zone:\n" + zone)
             rrs = RR.fromZone(zone)
-            assert(len(rrs) == 1)
             rr = rrs[0]
-            reply.add_answer(rr)
+            for rr in rrs:
+                reply.add_answer(rr)
+
         return reply
 
 if __name__ == '__main__':
