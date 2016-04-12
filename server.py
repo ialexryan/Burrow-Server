@@ -67,9 +67,11 @@ class FixedResolver(BaseResolver):
             elif (sub.matchSuffix("end")):
                 transmission_to_end = sub.stripSuffix("end").label[-1]
                 try:
+                    final_contents = self.active_transmissions[transmission_to_end]
                     del self.active_transmissions[transmission_to_end]
                     print("Active transmissions are: " + str(self.active_transmissions))
-                    zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': True}))
+                    # In the future we'll do something with this data, but for now we just send it back (reversed for fun!)
+                    zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': True, 'contents': final_contents[::-1]}))
                 except KeyError:
                     print("ERROR: tried to end a transmission that doesn't exist.")
                     zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': False}))
