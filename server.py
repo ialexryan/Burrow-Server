@@ -22,17 +22,17 @@ def parse_url(url):
         url = url.stripSuffix("burrow.tech")
         if url.matchSuffix("begin"):
             url = url.stripSuffix("begin")
-            if len(url.label) != 1:
+            if len(url.label) < 1:
                 raise ValueError
             return Begin(url.label[-1])
         elif url.matchSuffix("continue"):
             url = url.stripSuffix("continue")
-            if len(url.label) != 3:
+            if len(url.label) < 3:
                 raise ValueError
             return Continue(url.label[-3], int(url.label[-2]), url.label[-1])
         elif url.matchSuffix("end"):
             url = url.stripSuffix("end")
-            if len(url.label) != 2:
+            if len(url.label) < 2:
                 raise ValueError
             return End(int(url.label[-2]), url.label[-1])
         else:
