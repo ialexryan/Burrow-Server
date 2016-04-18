@@ -33,7 +33,26 @@ def generate_TXT_zone(host, text_list):
     output = ""
     for t in text_list:
        output += generate_TXT_zone_line(host, t)
-    return output 
+    return output
+
+class Transmission:
+    """
+        Represents an incoming transmission from a client.
+    """
+    def __init__(self, id):
+        self.id = id
+        self.data = ""
+        self.index = -1
+    def add_data(self, data, index):
+        # We ignore any incoming data that isn't at the next index
+        if (index == self.index + 1):
+            self.data += data
+            self.index += 1
+            return True
+        else:
+            return False
+    def __repr__(self):
+        return "<Transmission " + self.id + ", " + self.data + ">"
 
 class FixedResolver(BaseResolver):
     """
@@ -60,14 +79,14 @@ class FixedResolver(BaseResolver):
             sub = get_subdomain(qname)
             if (sub.matchSuffix("begin")):
                 transmission_id = uuid.uuid4().hex[-8:]
-                self.active_transmissions[transmission_id] = ""
+                self.active_transmissions[transmission_id] = Transmission(transmission_id)
                 print("Active transmissions are: " + str(self.active_transmissions))
                 response_dict = {'success': True, 'transmission_id': transmission_id}
                 zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
             elif (sub.matchSuffix("end")):
                 transmission_to_end = sub.stripSuffix("end").label[-1]
                 try:
-                    final_contents = self.active_transmissions[transmission_to_end]
+                    final_contents = self.active_transmissions[transmission_to_end].data
                     del self.active_transmissions[transmission_to_end]
                     print("Active transmissions are: " + str(self.active_transmissions))
                     # In the future we'll do something with this data, but for now we just send it back (reversed for fun!)
@@ -76,12 +95,13 @@ class FixedResolver(BaseResolver):
                     print("ERROR: tried to end a transmission that doesn't exist.")
                     zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': False}))
             elif (sub.matchSuffix("continue")):
-                transmission_to_continue = sub.stripSuffix("continue").label[-1]
-                data = str(sub.stripSuffix(transmission_to_continue + ".continue")).strip(".")
+                transmission_id = sub.stripSuffix("continue").label[-1]
+                index = int(sub.stripSuffix("continue").label[-2])
+                data = str(sub.stripSuffix(str(index) + "." + transmission_id + ".continue")).strip(".")
                 try:
-                    self.active_transmissions[transmission_to_continue] += data
+                    success = self.active_transmissions[transmission_id].add_data(data, index)
                     print("Active transmissions are: " + str(self.active_transmissions))
-                    zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': True}))
+                    zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': success}))
                 except KeyError:
                     print("ERROR: tried to continue a transmission that doesn't exist.")
                     zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': False}))
