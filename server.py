@@ -126,8 +126,7 @@ class FixedResolver(BaseResolver):
                     print("Active transmissions are: " + str(self.active_transmissions))
                     response_dict = {'success': True}
                 except KeyError:
-                    print("ERROR: tried to continue a transmission that doesn't exist.")
-                    response_dict = {'success': False}
+                    response_dict = {'success': False, 'error': "Tried to continue a transmission that doesn't exist."}
             elif isinstance(parsed, End):
                 try:
                     final_contents = self.active_transmissions[parsed.id].end(parsed.length)
@@ -136,8 +135,7 @@ class FixedResolver(BaseResolver):
                     # In the future we'll do something with this data, but for now we just send it back (reversed for fun!)
                     response_dict = {'success': True, 'contents': final_contents[::-1]}
                 except KeyError:
-                    print("ERROR: tried to end a transmission that doesn't exist.")
-                    response_dict = {'success': False}
+                    response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
             zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
             print("We generated zone:\n" + zone)
             rrs = RR.fromZone(zone)
