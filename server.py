@@ -4,6 +4,7 @@ import copy
 import json
 import uuid
 import collections
+import base64
 
 from dnslib import RR
 from dnslib.label import DNSLabel
@@ -84,7 +85,7 @@ class Transmission:
             self.completed = ""
             for i in range(length):
                 self.completed += self.data[i]
-            return self.completed.decode('base64')
+            return base64.b64decode(self.completed)
         else:
             return "ERROR: .end called early. Debug me now!"
     def __repr__(self):
@@ -135,7 +136,7 @@ class FixedResolver(BaseResolver):
                     del self.active_transmissions[parsed.id]
                     print("Active transmissions are: " + str(self.active_transmissions))
                     # In the future we'll do something with this data, but for now we just send it back (reversed for fun!)
-                    response_dict = {'success': True, 'contents': (final_contents[::-1]).encode('base64')}
+                    response_dict = {'success': True, 'contents': base64.b64encode(final_contents[::-1])}
                 except KeyError:
                     response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
             zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
