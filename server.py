@@ -29,7 +29,8 @@ def parse_url(url):
             url = url.stripSuffix("continue")
             if len(url.label) < 3:
                 raise ValueError
-            return Continue(url.label[-3], int(url.label[-2]), url.label[-1])
+            data = "".join(url.label[:-2]).replace(".", "")
+            return Continue(data, int(url.label[-2]), url.label[-1])
         elif url.matchSuffix("end"):
             url = url.stripSuffix("end")
             if len(url.label) < 2:
@@ -83,7 +84,7 @@ class Transmission:
             self.completed = ""
             for i in range(length):
                 self.completed += self.data[i]
-            return self.completed
+            return self.completed.decode('base64')
         else:
             return "ERROR: .end called early. Debug me now!"
     def __repr__(self):
@@ -130,10 +131,11 @@ class FixedResolver(BaseResolver):
             elif isinstance(parsed, End):
                 try:
                     final_contents = self.active_transmissions[parsed.id].end(parsed.length)
+                    print(final_contents)
                     del self.active_transmissions[parsed.id]
                     print("Active transmissions are: " + str(self.active_transmissions))
                     # In the future we'll do something with this data, but for now we just send it back (reversed for fun!)
-                    response_dict = {'success': True, 'contents': final_contents[::-1]}
+                    response_dict = {'success': True, 'contents': (final_contents[::-1]).encode('base64')}
                 except KeyError:
                     response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
             zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
