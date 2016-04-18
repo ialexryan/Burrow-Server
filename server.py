@@ -41,18 +41,25 @@ class Transmission:
     """
     def __init__(self, id):
         self.id = id
-        self.data = ""
-        self.index = -1
+        self.data = {} # {index: data}
     def add_data(self, data, index):
-        # We ignore any incoming data that isn't at the next index
-        if (index == self.index + 1):
-            self.data += data
-            self.index += 1
+        # Indices can arrive out of order
+        # Ignore duplicates
+        if (index not in self.data):
+            self.data[index] = data
             return True
         else:
             return False
+    def end(self, length):
+        if all (k in self.data for k in range(length)):
+            self.completed = ""
+            for i in range(length):
+                self.completed += self.data[i]
+            return self.completed
+        else:
+            return "ERROR: .end called early. Debug me now!"
     def __repr__(self):
-        return "<Transmission " + self.id + ", " + self.data + ">"
+        return "<Transmission " + self.id + ", " + str(self.data) + ">"
 
 class FixedResolver(BaseResolver):
     """
@@ -89,8 +96,9 @@ class FixedResolver(BaseResolver):
                 zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
             elif (sub.matchSuffix("end")):
                 transmission_to_end = sub.stripSuffix("end").label[-1]
+                length = int(sub.stripSuffix("end").label[-2])
                 try:
-                    final_contents = self.active_transmissions[transmission_to_end].data
+                    final_contents = self.active_transmissions[transmission_to_end].end(length)
                     del self.active_transmissions[transmission_to_end]
                     print("Active transmissions are: " + str(self.active_transmissions))
                     # In the future we'll do something with this data, but for now we just send it back (reversed for fun!)
