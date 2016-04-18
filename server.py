@@ -3,15 +3,45 @@ from __future__ import print_function
 import copy
 import json
 import uuid
+import collections
 
 from dnslib import RR
 from dnslib.label import DNSLabel
 from dnslib.server import DNSServer, DNSHandler, BaseResolver, DNSLogger
 
-def get_subdomain(fqdn):
-    assert(isinstance(fqdn, DNSLabel))
-    assert(fqdn.matchSuffix("burrow.tech"))
-    return fqdn.stripSuffix("burrow.tech")
+Begin = collections.namedtuple('Begin', 'prefix')
+Continue = collections.namedtuple('Continue', 'data index id')
+End = collections.namedtuple('End', 'length id')
+Other = collections.namedtuple('Other', 'host')
+Failure = collections.namedtuple('Failure', 'host')
+def parse_url(url):
+    try:
+        print(url)
+        copy = url
+        assert(isinstance(url, DNSLabel))
+        assert(url.matchSuffix("burrow.tech"))
+        url = url.stripSuffix("burrow.tech")
+        print(url)
+        if url.matchSuffix("begin"):
+            url = url.stripSuffix("begin")
+            if len(url.label) != 1:
+                raise ValueError
+            return Begin(url.label[-1])
+        elif url.matchSuffix("continue"):
+            url = url.stripSuffix("continue")
+            if len(url.label) != 3:
+                raise ValueError
+            return Continue(url.label[-3], int(url.label[-2]), url.label[-1])
+        elif url.matchSuffix("end"):
+            url = url.stripSuffix("end")
+            if len(url.label) != 2:
+                raise ValueError
+            return End(int(url.label[-2]), url.label[-1])
+        else:
+            return Other(copy)
+    except ValueError:
+            return Failure(copy)
+
 
 def dict_to_attributes(d):
     # Implement the standard way of representing attributes
@@ -82,50 +112,40 @@ class FixedResolver(BaseResolver):
                 print("Found a fixed record for " + str(a.rname))
                 reply.add_answer(a)
         if (not found_fixed_rr):
-            zone = ""
-            sub = get_subdomain(qname)
-            if (sub.matchSuffix("begin")):
-                if (len(sub.stripSuffix("begin")) == 0):
-                    # Should have garbage text before begin to prevent caching
-                    response_dict = {'success': False}
-                else:
-		    transmission_id = uuid.uuid4().hex[-8:]
-                    self.active_transmissions[transmission_id] = Transmission(transmission_id)
-                    print("Active transmissions are: " + str(self.active_transmissions))
-                    response_dict = {'success': True, 'transmission_id': transmission_id}
-                zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
-            elif (sub.matchSuffix("end")):
-                transmission_to_end = sub.stripSuffix("end").label[-1]
-                length = int(sub.stripSuffix("end").label[-2])
+            parsed = parse_url(qname)
+            if isinstance(parsed, Failure):
+                response_dict = {'success': False, 'error': "You used the API incorrectly."}
+            elif isinstance(parsed, Other):
+                response_dict = {'success': False, 'error': "This is not an API endpoint"}
+            elif isinstance(parsed, Begin):
+		transmission_id = uuid.uuid4().hex[-8:]
+                self.active_transmissions[transmission_id] = Transmission(transmission_id)
+                print("Active transmissions are: " + str(self.active_transmissions))
+                response_dict = {'success': True, 'transmission_id': transmission_id}
+            elif isinstance(parsed, Continue):
                 try:
-                    final_contents = self.active_transmissions[transmission_to_end].end(length)
-                    del self.active_transmissions[transmission_to_end]
+                    success = self.active_transmissions[parsed.id].add_data(parsed.data, parsed.index)
                     print("Active transmissions are: " + str(self.active_transmissions))
-                    # In the future we'll do something with this data, but for now we just send it back (reversed for fun!)
-                    zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': True, 'contents': final_contents[::-1]}))
-                except KeyError:
-                    print("ERROR: tried to end a transmission that doesn't exist.")
-                    zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': False}))
-            elif (sub.matchSuffix("continue")):
-                transmission_id = sub.stripSuffix("continue").label[-1]
-                index = int(sub.stripSuffix("continue").label[-2])
-                data = str(sub.stripSuffix(str(index) + "." + transmission_id + ".continue")).strip(".")
-                try:
-                    success = self.active_transmissions[transmission_id].add_data(data, index)
-                    print("Active transmissions are: " + str(self.active_transmissions))
-                    zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': success}))
+                    response_dict = {'success': True}
                 except KeyError:
                     print("ERROR: tried to continue a transmission that doesn't exist.")
-                    zone = generate_TXT_zone(str(qname), dict_to_attributes({'success': False}))
-            else:
-                response_text = "You are " + str(sub)
-                zone = generate_TXT_zone_line(str(qname), response_text)
+                    response_dict = {'success': False}
+            elif isinstance(parsed, End):
+                try:
+                    final_contents = self.active_transmissions[parsed.id].end(parsed.length)
+                    del self.active_transmissions[parsed.id]
+                    print("Active transmissions are: " + str(self.active_transmissions))
+                    # In the future we'll do something with this data, but for now we just send it back (reversed for fun!)
+                    response_dict = {'success': True, 'contents': final_contents[::-1]}
+                except KeyError:
+                    print("ERROR: tried to end a transmission that doesn't exist.")
+                    response_dict = {'success': False}
+            zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
             print("We generated zone:\n" + zone)
             rrs = RR.fromZone(zone)
             rr = rrs[0]
             for rr in rrs:
                 reply.add_answer(rr)
-
         return reply
 
 if __name__ == '__main__':
