@@ -78,10 +78,14 @@ class FixedResolver(BaseResolver):
             zone = ""
             sub = get_subdomain(qname)
             if (sub.matchSuffix("begin")):
-                transmission_id = uuid.uuid4().hex[-8:]
-                self.active_transmissions[transmission_id] = Transmission(transmission_id)
-                print("Active transmissions are: " + str(self.active_transmissions))
-                response_dict = {'success': True, 'transmission_id': transmission_id}
+                if (len(sub.stripSuffix("begin")) == 0):
+                    # Should have garbage text before begin to prevent caching
+                    response_dict = {'success': False}
+                else:
+		    transmission_id = uuid.uuid4().hex[-8:]
+                    self.active_transmissions[transmission_id] = Transmission(transmission_id)
+                    print("Active transmissions are: " + str(self.active_transmissions))
+                    response_dict = {'success': True, 'transmission_id': transmission_id}
                 zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
             elif (sub.matchSuffix("end")):
                 transmission_to_end = sub.stripSuffix("end").label[-1]
