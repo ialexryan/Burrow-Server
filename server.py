@@ -16,12 +16,10 @@ Other = collections.namedtuple('Other', 'host')
 Failure = collections.namedtuple('Failure', 'host')
 def parse_url(url):
     try:
-        print(url)
         copy = url
         assert(isinstance(url, DNSLabel))
         assert(url.matchSuffix("burrow.tech"))
         url = url.stripSuffix("burrow.tech")
-        print(url)
         if url.matchSuffix("begin"):
             url = url.stripSuffix("begin")
             if len(url.label) != 1:
