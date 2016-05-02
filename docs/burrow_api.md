@@ -9,7 +9,7 @@ The following messages are used to set up, utilize, and tear down a Burrow tunne
 |----------------|----------------------------------------|--------------------------|
 | Begin Session  | `b`                                    | `s-[session identifier]` |
 | Forward Packet | `f-[session identifier]-[packet data]` | `s`                      |
-| Receive Packet | `r-[session identifier]`               | `s-[packet data]`        |
+| Request Packet | `r-[session identifier]`               | `s-[packet data]`        |
 | End Session    | `e-[session identifier]`               | `s`                      |
 
 As shown above, messages are formatted as a dash-separated list.
