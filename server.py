@@ -10,6 +10,8 @@ from dnslib import RR
 from dnslib.label import DNSLabel
 from dnslib.server import DNSServer, DNSHandler, BaseResolver, DNSLogger
 
+import session
+
 Begin = collections.namedtuple('Begin', 'prefix')
 Continue = collections.namedtuple('Continue', 'data index id')
 End = collections.namedtuple('End', 'length id')
@@ -136,7 +138,7 @@ class FixedResolver(BaseResolver):
                     del self.active_transmissions[parsed.id]
                     print("Active transmissions are: " + str(self.active_transmissions))
                     # In the future we'll do something with this data, but for now we just send it back (reversed for fun!)
-                    response_dict = {'success': True, 'contents': base64.b64encode(final_contents[::-1])}
+                    response_dict = {'success': True, 'contents': base64.b64encode(session.handle_response(final_contents))}
                 except KeyError:
                     response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
             zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
