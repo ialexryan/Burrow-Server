@@ -7,6 +7,10 @@ from scapy.layers.inet import TCP
 from scapy.layers.inet import UDP
 from scapy.all import sr
 
+NO_ERROR = 0
+INVALID_PACKET = 1
+NO_FREE_PORTS = 2
+
 SERVER_IP = "131.215.172.230"
 available_ports = range(30000,50000)     #ports will be removed from this list while in use
 sessions = {}
@@ -27,11 +31,13 @@ class Session:
 		print "Forwarding packet"
 		pkt.show2()
 
-		assert(IP in pkt)
+		if IP not in pkt:
+                    return INVALID_PACKET
 		original_src = pkt[IP].src   #store the original source IP
 		pkt[IP].src = SERVER_IP      #spoof the source IP so the packet comes back to us
 		del pkt[IP].chksum           #invalidate the checksum
-
+                if len(available_ports) == 0:
+                    return NO_FREE_PORTS
 		port = available_ports.pop(0)        #get a port from our pool of available ports
 		if TCP in pkt:
 			protocol = TCP
@@ -46,7 +52,7 @@ class Session:
 			#pkt[UDP].dport = ____
 			del pkt[UDP].chksum
 		else:
-			assert(False)
+			return INVALID_PACKET
 
 		pkt = IP(str(pkt))   #recalculate all the checksums
 
@@ -68,6 +74,7 @@ class Session:
 			self.pending_response_packets.append(base64.b64encode(str(response)))
 
 		available_ports.append(port)  #return port to available pool
+                return NO_ERROR
 
 
 def handle_message(message):
@@ -97,14 +104,19 @@ def got_forward_packet(components):
 	session_id = components.next()
 	session = sessions[session_id]
 	packet = base64.b64decode(components.next())
-	session.forward(packet)
-	return "s" #we should probably check for failure too
+	err = session.forward(packet)
+        if err == NO_ERROR:
+	    return "s"
+        elif err == INVALID_PACKET:
+            return "f-0-Packet is Invalid"
+        elif err == NO_FREE_PORT:
+            return "f-0-Could not find a free port"
 
 def got_request_packet(components):
 	session_id = components.next()
 	data = sessions[session_id].request()
 	if data == None:
-		return "f-0"
+		return "f-0-No Respone Received"
 	else:
 		return "s-" + data
 

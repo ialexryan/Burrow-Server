@@ -6,6 +6,7 @@ import uuid
 import collections
 import base64
 import re
+import sys
 
 from dnslib import RR
 from dnslib.label import DNSLabel
@@ -148,6 +149,8 @@ class FixedResolver(BaseResolver):
                     response_dict = {'success': True, 'contents': response_packet}
                 except KeyError:
                     response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
+                except AssertionError:
+                    sys.exit(1)
             zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
             print("We generated zone:\n" + zone)
             rrs = RR.fromZone(zone)
