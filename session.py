@@ -85,7 +85,7 @@ def handle_message(message):
 	else:
 		# Once we're actually doing packet forwarding, this shouldn't happen
 		# For now, reverse the string
-		response = message[::-1]
+		response = base64.b64encode(message[::-1])
 	return response
 
 def got_begin_session():

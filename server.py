@@ -5,6 +5,7 @@ import json
 import uuid
 import collections
 import base64
+import re
 
 from dnslib import RR
 from dnslib.label import DNSLabel
@@ -66,6 +67,10 @@ def generate_TXT_zone(host, text_list):
     for t in text_list:
        output += generate_TXT_zone_line(host, t)
     return output
+
+def is_domain_safe(packet):
+    domain_safe_matcher = re.compile(r'[A-Za-z0-9-+/]').search
+    return bool(domain_safe_matcher(packet))
 
 class Transmission:
     """
@@ -138,7 +143,9 @@ class FixedResolver(BaseResolver):
                     del self.active_transmissions[parsed.id]
                     print("Active transmissions are: " + str(self.active_transmissions))
                     # In the future we'll do something with this data, but for now we just send it back (reversed for fun!)
-                    response_dict = {'success': True, 'contents': base64.b64encode(session.handle_response(final_contents))}
+                    response_packet = session.handle_message(final_contents)
+                    assert(is_domain_safe(response_packet))
+                    response_dict = {'success': True, 'contents': response_packet}
                 except KeyError:
                     response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
             zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
