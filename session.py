@@ -1,4 +1,5 @@
 import uuid
+import base64
 
 from scapy import route
 from scapy.layers.inet import IP
@@ -64,7 +65,7 @@ class Session:
 			response = pair[1]
 			response[IP].src = original_src
 			response[protocol].sport = original_sport
-			self.pending_response_packets.append(str(response))
+			self.pending_response_packets.append(base64.b64encode(str(response)))
 
 		available_ports.append(port)  #return port to available pool
 
@@ -95,7 +96,7 @@ def got_begin_session():
 def got_forward_packet(components):
 	session_id = components.next()
 	session = sessions[session_id]
-	packet = components.next()
+	packet = base64.b64decode(components.next())
 	session.forward(packet)
 	return "s" #we should probably check for failure too
 
