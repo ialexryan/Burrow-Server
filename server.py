@@ -4,7 +4,6 @@ import copy
 import json
 import uuid
 import collections
-import base64
 import re
 import sys
 
@@ -93,7 +92,7 @@ class Transmission:
             self.completed = ""
             for i in range(length):
                 self.completed += self.data[i]
-            return base64.b64decode(self.completed)
+            return self.completed
         else:
             return "ERROR: .end called early. Debug me now!"
     def __repr__(self):
