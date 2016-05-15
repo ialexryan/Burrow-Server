@@ -44,7 +44,7 @@ The following messages are used to set up, utilize, and tear down a Burrow tunne
 | End Session    | `e-[session identifier]`               | `s`                      |
 | Test (reverse) | `test-helloworld`                      | `dlrowolleh-tset`        |
 
-As shown above, messages are formatted as a dash-separated list. In both cases, packet data is base64-encoded.
+As shown above, messages are formatted as a dash-separated list. In both cases, packet data is Base64-encoded.
 
 The first component of the client message identifies the message type so that the server knows how to
 interpret the arguments and execute the message. The following components of the client message act
@@ -75,6 +75,8 @@ The following error codes exist. Note that new error codes should be added to th
 break compatibility. If error codes must be added earlier in the list, both the client and server must be
 updated.
 
-| Error Code | Error Type      |
-|------------|-----------------|
-| 0          | Unknown Failure |
+| Error Code | Error Type           |
+|------------|----------------------|
+| 0          | Unknown Failure      |
+| 1          | Unknown Message Type |
+

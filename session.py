@@ -94,7 +94,7 @@ def handle_message(message):
 		response = message[::-1]
 	else:
 		# This should never happen
-		response = "Error: invalid session syntax"
+		response = "f-1-Message type `" + type + "` is unkown"
 	return response
 
 def got_begin_session():
