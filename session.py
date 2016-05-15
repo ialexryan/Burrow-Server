@@ -89,10 +89,12 @@ def handle_message(message):
 		response = got_request_packet(components)
 	elif (type == 'e'):
 		response = got_end_session(components)
+	elif (type == 'test'):
+		# reverse the string
+		response = message[::-1]
 	else:
-		# Once we're actually doing packet forwarding, this shouldn't happen
-		# For now, reverse the string
-		response = base64.b64encode(message[::-1])
+		# This should never happen
+		response = "Error: invalid session syntax"
 	return response
 
 def got_begin_session():

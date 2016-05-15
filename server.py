@@ -142,7 +142,6 @@ class FixedResolver(BaseResolver):
                     print(final_contents)
                     del self.active_transmissions[parsed.id]
                     print("Active transmissions are: " + str(self.active_transmissions))
-                    # In the future we'll do something with this data, but for now we just send it back (reversed for fun!)
                     response_packet = session.handle_message(final_contents)
                     assert(is_domain_safe(response_packet))
                     response_dict = {'success': True, 'contents': response_packet}
