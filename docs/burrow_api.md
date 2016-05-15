@@ -12,9 +12,9 @@ The following messages are used to set up, utilize, and tear down a Burrow tunne
 | Request Packet | `r-[session identifier]`               | `s-[packet data]`        |
 | End Session    | `e-[session identifier]`               | `s`                      |
 
-As shown above, messages are formatted as a dash-separated list.
+As shown above, messages are formatted as a dash-separated list. In both cases, packet data is base64-encoded.
 
-The first componet of the client message identifies the message type so that the server knows how to
+The first component of the client message identifies the message type so that the server knows how to
 interpret the arguments and execute the message. The following components of the client message act
 as the arguments of the message.
 
@@ -24,7 +24,7 @@ The server message is structured a little bit differently. Since it is sent in r
 the client does not need to be informed of the message type. Instead, the server message uses the first
 component to indicate success or failure. If the first component is `s`, this identifier a successful response,
 and the rest of the arguments are to be treated as the proper arguments to a response of this message type.
-If the first compoennt is `f` however, the response indicates a failure.
+If the first component is `f` however, the response indicates a failure.
 
 | Result  | Server Format                               |
 |---------|---------------------------------------------|
