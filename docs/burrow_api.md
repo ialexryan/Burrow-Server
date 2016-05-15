@@ -11,6 +11,7 @@ The following messages are used to set up, utilize, and tear down a Burrow tunne
 | Forward Packet | `f-[session identifier]-[packet data]` | `s`                      |
 | Request Packet | `r-[session identifier]`               | `s-[packet data]`        |
 | End Session    | `e-[session identifier]`               | `s`                      |
+| Test (reverse) | `test-helloworld`                      | `dlrowolleh-tset`        |
 
 As shown above, messages are formatted as a dash-separated list. In both cases, packet data is base64-encoded.
 
