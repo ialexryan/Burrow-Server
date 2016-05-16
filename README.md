@@ -40,13 +40,13 @@ Of course, we would never send the message "thisissomesampledataforustouse" to t
 
 The following messages are used to set up, utilize, and tear down a Burrow tunnel.
 
-| Message        | Client Message Format                  | Server Response Format   |
-|----------------|----------------------------------------|--------------------------|
-| Begin Session  | `b`                                    | `s-[session identifier]` |
-| Forward Packet | `f-[session identifier]-[packet data]` | `s`                      |
-| Request Packet | `r-[session identifier]`               | `s-[packet data]`        |
-| End Session    | `e-[session identifier]`               | `s`                      |
-| Test (reverse) | `test-helloworld`                      | `dlrowolleh-tset`        |
+| Message         | Client Message Format                      | Server Response Format   |
+|-----------------|--------------------------------------------|--------------------------|
+| Begin Session   | `b`                                        | `s-[session identifier]` |
+| Forward Packets | `f-[session identifier]-[packet data]-...` | `s`                      |
+| Request Packets | `r-[session identifier]`                   | `s-[packet data]-...`    |
+| End Session     | `e-[session identifier]`                   | `s`                      |
+| Test (reverse)  | `test-helloworld`                          | `dlrowolleh-tset`        |
 
 In both cases, packet data is Base64-encoded.
 
