@@ -1,7 +1,11 @@
 # Burrow Server
 
+Burrow operates using two layers. The Transmission layer handles communicating
+arbitrary amounts of data between the server and the client. The Session layer, which is built
+atop the Transmission layer, handles forwarding packets from the client and returning response packets to the client.
+
 ## Transmission layer
-Here's how you send data to the server with multiple DNS requests:
+Here's how we would send the message "thisissomesampledataforustouse" to the server, across 3 separate DNS lookups.
 
 **1) Begin the transmission**
 ```
@@ -17,17 +21,17 @@ dig -t txt thisissome.0.2a591c8b.continue.burrow.tech
 dig -t txt sampledata.1.2a591c8b.continue.burrow.tech
 dig -t txt forustouse.2.2a591c8b.continue.burrow.tech
 ```
-The indices are required because DNS lookups are sometimes duplicated, and to allow all lookups to be done in parallel.
+The indices (0, 1, 2) are required because DNS lookups are sometimes duplicated, and to allow all lookups to be done in parallel.
+
+Note that any data sent through the transmission layer must be domain-safe.
 
 **3) End the transmission**
 ```
 dig -t txt 3.2a591c8b.end.burrow.tech
 ```
-The length is there for error detection - if it doesn't match the number of continue's received, the transmission will fail.
+The length (3) is there for error detection - if it doesn't match the number of `continue` lookups received, the transmission will fail.
 
-Right now, the server just sends you back the data you sent to it, concatenated and reversed.
-
-In the future, it will concatenate the data into an IP packet or HTTP request and act on it.
+Of course, we would never send the message "thisissomesampledataforustouse" to the server. Instead, the messages we send to the server have the following special format.
 
 
 ## Session layer
@@ -36,7 +40,7 @@ In the future, it will concatenate the data into an IP packet or HTTP request an
 
 The following messages are used to set up, utilize, and tear down a Burrow tunnel.
 
-| Message        | Client Format                          | Server Format            |
+| Message        | Client Message Format                  | Server Response Format   |
 |----------------|----------------------------------------|--------------------------|
 | Begin Session  | `b`                                    | `s-[session identifier]` |
 | Forward Packet | `f-[session identifier]-[packet data]` | `s`                      |
@@ -44,30 +48,22 @@ The following messages are used to set up, utilize, and tear down a Burrow tunne
 | End Session    | `e-[session identifier]`               | `s`                      |
 | Test (reverse) | `test-helloworld`                      | `dlrowolleh-tset`        |
 
-As shown above, messages are formatted as a dash-separated list. In both cases, packet data is Base64-encoded.
+In both cases, packet data is Base64-encoded.
 
-The first component of the client message identifies the message type so that the server knows how to
-interpret the arguments and execute the message. The following components of the client message act
-as the arguments of the message.
+The first dash-separated component of the client message identifies the message type, and the following components
+are the arguments of the message.
 
-### Server Error Response
-
-The server message is structured a little bit differently. Since it is sent in response to a client message,
-the client does not need to be informed of the message type. Instead, the server message uses the first
-component to indicate success or failure. If the first component is `s`, this identifier a successful response,
-and the rest of the arguments are to be treated as the proper arguments to a response of this message type.
+The server response doesn't contain a message type since it is sent in response to a client message. 
+Instead, the server response uses the first component to indicate success or failure.
+If the first component is `s`, the operation was successful and the rest of the components
+contain the information returned in response to this message type.
 If the first component is `f` however, the response indicates a failure.
 
 | Result  | Server Format                               |
 |---------|---------------------------------------------|
-| Success | `s-[arguments...]`                          |
+| Success | `s-[information...]`                        |
 | Failure | `f-[error code]-[reason]-[associated data]` |
 
-The error code describes the basic type of error that occured. It might be used by the client to recover
-from a given error, perhaps by retrying. A separate error code need not exist for every possible reason.
-Error codes simply describe the general problem that occured, and the reason provides description. The
-associated data may be used to send back other info if necessary, otherwise it may be omitted such that the
-message simply ends with a separator.
 
 #### Error Codes
 
