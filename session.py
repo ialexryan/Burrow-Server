@@ -11,6 +11,10 @@ NO_ERROR = 0
 INVALID_PACKET = 1
 NO_FREE_PORTS = 2
 
+# TODO: Currently sending some number of packets each time. Should later
+# optimize this number and also make sure the size is under 64 kb.
+SEND_N_PACKETS = 5
+
 SERVER_IP = "131.215.172.230"
 available_ports = range(30000,50000)     #ports will be removed from this list while in use
 sessions = {}
@@ -22,9 +26,12 @@ class Session:
 
 	def request(self):
 		if len(self.pending_response_packets) == 0:
-			return None
+		    return None
 		else:
-			return self.pending_response_packets.pop(0)
+		    response_packets = []
+		    while (len(self.pending_response_packets) != 0) and (len(response_packets) < SEND_N_PACKETS):
+		        response_packets.append(self.pending_response_packets.pop(0))
+		    return response_packets
 
 	def forward(self, message):
 		pkt = IP(message)        #parse the binary data to a scapy IP packet
@@ -105,8 +112,12 @@ def got_begin_session():
 def got_forward_packet(components):
 	session_id = components.next()
 	session = sessions[session_id]
-	packet = base64.b64decode(components.next())
-	err = session.forward(packet)
+	try:
+            while True:
+	        packet = base64.b64decode(components.next())
+	        err = session.forward(packet)
+        except StopIteration:
+            pass
         if err == NO_ERROR:
 	    return "s"
         elif err == INVALID_PACKET:
@@ -120,7 +131,10 @@ def got_request_packet(components):
 	if data == None:
 		return "f-0-No Respone Received"
 	else:
-		return "s-" + data
+		response = "s"
+		for packet in data:
+			response += "-" + packet
+		return response
 
 def got_end_session(components):
 	session_id = components.next()
