@@ -123,10 +123,11 @@ def got_forward_packets(components):
 
 def got_request_packets(components):
 	session_id = components.next()
-	data = sessions[session_id].request()
-	if data == None:
-		return "f-0-No Respone Received"
-	else:
+    # TODO: Handle returning error when the session id doesn't exist---THIS HAPPENS RIGHT NOW!
+    session = sessions.get(session_id)
+    if session is None:
+        return "f-2-Session identifier `" + str(session_id) + "` is unknown."
+    data = session.request()
 		response = "s"
 		for packet in data:
 			response += "-" + packet
