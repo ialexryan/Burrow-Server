@@ -67,12 +67,13 @@ If the first component is `f` however, the response indicates a failure.
 
 #### Error Codes
 
-The following error codes exist. Note that new error codes should be added to the end of the list as to not
-break compatibility. If error codes must be added earlier in the list, both the client and server must be
+The following error codes exist. Note that new error codes should be added to the end of the list in order to maintain
+compatibility. If error codes must be added earlier in the list, both the client and server must be
 updated.
 
-| Error Code | Error Type           |
-|------------|----------------------|
-| 0          | Unknown Failure      |
-| 1          | Unknown Message Type |
+| Error Code | Error Type                 |
+|------------|----------------------------|
+| 0          | Unknown Failure            |
+| 1          | Unknown Message Type       |
+| 2          | Unknown Session Identifier |
 
