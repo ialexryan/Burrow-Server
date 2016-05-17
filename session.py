@@ -98,7 +98,7 @@ def handle_message(message):
         response = message[::-1]
     else:
         # This should never happen
-        response = "f-1-Message type `" + str(type) + "` is unkown."
+        response = "f-1-Message_type_`" + str(type) + "`_is_unkown."
     return response
 
 def got_begin_session():
@@ -117,16 +117,16 @@ def got_forward_packets(components):
     if err == NO_ERROR:
         return "s"
     elif err == INVALID_PACKET:
-        return "f-0-Packet is Invalid"
+        return "f-0-Packet_is_Invalid"
     elif err == NO_FREE_PORT:
-        return "f-0-Could not find a free port"
+        return "f-0-Could_not_find_a_free_port"
 
 def got_request_packets(components):
     session_id = components.next()
     # TODO: Handle returning error when the session id doesn't exist---THIS HAPPENS RIGHT NOW!
     session = sessions.get(session_id)
     if session is None:
-        return "f-2-Session identifier `" + str(session_id) + "` is unknown."
+        return "f-2-Session_identifier_`" + str(session_id) + "`_is_unknown."
     data = session.request()
     response = "s"
     for packet in data:
