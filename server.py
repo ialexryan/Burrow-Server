@@ -145,18 +145,19 @@ class FixedResolver(BaseResolver):
                 except KeyError:
                     response_dict = {'success': False, 'error': "Tried to continue a transmission that doesn't exist."}
             elif isinstance(parsed, End):
-                try:
-                    final_contents = self.active_transmissions[parsed.id].end(parsed.length)
-                    print(final_contents)
-                    del self.active_transmissions[parsed.id]
                     print("Active transmissions are: " + str(self.active_transmissions))
+                    transmission = self.active_transmissions.get(parsed.id)
+                    response_dict = None
+                    if transmission is not None:
+                        print("Deleting transmisson with key: " + str(parsed.id))
+                        del self.active_transmissions[parsed.id]
+                        final_contents = transmission.end(parsed.length)
+                        print("Final contents: " + str(final_contents))
                     response_packet = session.handle_message(final_contents)
                     assert(is_domain_safe(response_packet))
                     response_dict = {'success': True, 'contents': response_packet}
-                except KeyError:
+                    else:
                     response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
-                except AssertionError:
-                    sys.exit(1)
                 # Cache the response in case of duplicate lookups
                 self.cache[qname] = response_dict
             zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
