@@ -125,7 +125,7 @@ class FixedResolver(BaseResolver):
             elif isinstance(parsed, Other):
                 response_dict = {'success': False, 'error': "This is not an API endpoint"}
             elif isinstance(parsed, Begin):
-		transmission_id = uuid.uuid4().hex[-8:]
+        transmission_id = uuid.uuid4().hex[-8:]
                 self.active_transmissions[transmission_id] = Transmission(transmission_id)
                 print("Active transmissions are: " + str(self.active_transmissions))
                 response_dict = {'success': True, 'transmission_id': transmission_id}
