@@ -109,6 +109,8 @@ def got_begin_session():
 
 def got_forward_packets(components):
     session_id = components.next()
+    if session_id not in sessions:
+        return "f-2-Session_identifier_`" + str(session_id) + "`_is_unknown."
     session = sessions[session_id]
     packets = map(base64.b64decode, components)
     for packet in packets:
@@ -123,10 +125,9 @@ def got_forward_packets(components):
 
 def got_request_packets(components):
     session_id = components.next()
-    # TODO: Handle returning error when the session id doesn't exist---THIS HAPPENS RIGHT NOW!
-    session = sessions.get(session_id)
-    if session is None:
+    if session_id not in sessions:
         return "f-2-Session_identifier_`" + str(session_id) + "`_is_unknown."
+    session = sessions[session_id]
     data = session.request()
     response = "s"
     for packet in data:
@@ -135,6 +136,9 @@ def got_request_packets(components):
 
 def got_end_session(components):
     session_id = components.next()
+    if session_id not in sessions:
+        return "f-2-Session_identifier_`" + str(session_id) + "`_is_unknown."
+    session = sessions[session_id]
     print("Ending session: " + str(session_id))
     del sessions[session_id]
     return "s"
