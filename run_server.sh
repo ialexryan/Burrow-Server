@@ -16,7 +16,7 @@ do
     echo "Python server started as $!"
     # wait until the script is modified
     echo "Waiting for the file to be modified"
-    inotifywait -e modify server.py
+    inotifywait -e modify server.py session.py
     echo "The file was modified!"
     # send SIGTERM to the script
     echo "Sending SIGTERM to the script"
