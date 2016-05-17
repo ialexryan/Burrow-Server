@@ -91,9 +91,9 @@ def handle_message(message):
 	if (type == 'b'):
 		response = got_begin_session()
 	elif (type == 'f'):
-		response = got_forward_packet(components)
+        response = got_forward_packets(components)
 	elif (type == 'r'):
-		response = got_request_packet(components)
+        response = got_request_packets(components)
 	elif (type == 'e'):
 		response = got_end_session(components)
 	elif (type == 'test'):
@@ -109,7 +109,7 @@ def got_begin_session():
 	sessions[session_id] = Session(session_id)
 	return "s-" + str(session_id)
 
-def got_forward_packet(components):
+def got_forward_packets(components):
 	session_id = components.next()
 	session = sessions[session_id]
 	try:
@@ -125,7 +125,7 @@ def got_forward_packet(components):
         elif err == NO_FREE_PORT:
             return "f-0-Could not find a free port"
 
-def got_request_packet(components):
+def got_request_packets(components):
 	session_id = components.next()
 	data = sessions[session_id].request()
 	if data == None:
