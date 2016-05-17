@@ -25,9 +25,6 @@ class Session:
 		self.pending_response_packets = []
 
 	def request(self):
-		if len(self.pending_response_packets) == 0:
-		    return None
-		else:
 		    response_packets = []
 		    while (len(self.pending_response_packets) != 0) and (len(response_packets) < SEND_N_PACKETS):
 		        response_packets.append(self.pending_response_packets.pop(0))
