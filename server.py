@@ -14,6 +14,9 @@ from expiringdict import ExpiringDict
 
 import session
 
+def LOG(s):
+    print("    " + s)
+
 Begin = collections.namedtuple('Begin', 'prefix')
 Continue = collections.namedtuple('Continue', 'data index id')
 End = collections.namedtuple('End', 'length id')
@@ -112,13 +115,14 @@ class FixedResolver(BaseResolver):
     def resolve(self,request,handler):
         reply = request.reply()
         qname = request.q.qname
+        print("Request for " + str(DNSLabel(qname.label[-5:])))
        
         found_fixed_rr = False
         for rr in self.fixedrrs:
             a = copy.copy(rr)
             if (a.rname == qname):
                 found_fixed_rr = True
-                print("Found a fixed record for " + str(a.rname))
+                LOG("Found a fixed record for " + str(a.rname))
                 reply.add_answer(a)
         if (not found_fixed_rr):
             # If we recently responded to this lookup, be consistent.
@@ -135,33 +139,33 @@ class FixedResolver(BaseResolver):
                 elif isinstance(parsed, Begin):
                     transmission_id = uuid.uuid4().hex[-8:]
                     self.active_transmissions[transmission_id] = Transmission(transmission_id)
-                    print("Active transmissions are: " + str(self.active_transmissions))
+                    LOG("Began transmission with id: " + str(transmission_id))
                     response_dict = {'success': True, 'transmission_id': transmission_id}
                 elif isinstance(parsed, Continue):
                     try:
-                        success = self.active_transmissions[parsed.id].add_data(parsed.data, parsed.index)
-                        print("Active transmissions are: " + str(self.active_transmissions))
+                        self.active_transmissions[parsed.id].add_data(parsed.data, parsed.index)
+                        LOG("Continuing transmission " + str(parsed.id))
                         response_dict = {'success': True}
                     except KeyError:
+                        LOG("Error: tried to continue a transmission that doesn't exist: " + str(parsed.id))
                         response_dict = {'success': False, 'error': "Tried to continue a transmission that doesn't exist."}
                 elif isinstance(parsed, End):
-                    print("Active transmissions are: " + str(self.active_transmissions))
                     transmission = self.active_transmissions.get(parsed.id)
                     response_dict = None
                     if transmission is not None:
-                        print("Deleting transmisson with key: " + str(parsed.id))
                         del self.active_transmissions[parsed.id]
                         final_contents = transmission.end(parsed.length)
-                        print("Final contents: " + str(final_contents))
-                        response_packet = session.handle_message(final_contents)
-                        assert(is_domain_safe(response_packet))
-                        response_dict = {'success': True, 'contents': response_packet}
+                        LOG("Ending transmission " + str(parsed.id) +
+                            ". Final contents: " + ((final_contents[:15] + '...') if len(final_contents) > 15 else final_contents))
+                        response = session.handle_message(final_contents)
+                        assert(is_domain_safe(response))
+                        response_dict = {'success': True, 'contents': response}
                     else:
+                        LOG("Error: tried to end a transmission that doesn't exist: " + str(parsed.id))
                         response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
                 # Cache the response in case of duplicate lookups
                 self.cache[qname] = response_dict
             zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
-            print("We generated zone:\n" + zone)
             rrs = RR.fromZone(zone)
             rr = rrs[0]
             for rr in rrs:
@@ -184,8 +188,8 @@ if __name__ == '__main__':
                     help="Max UDP packet length (default:0)")
     p.add_argument("--notcp",action='store_true',default=False,
                     help="UDP server only (default: UDP and TCP)")
-    p.add_argument("--log",default="request,reply,truncated,error",
-                    help="Log hooks to enable (default: +request,+reply,+truncated,+error,-recv,-send,-data)")
+    p.add_argument("--log",default="truncated,error",
+                    help="Log hooks to enable (default: -request,-reply,+truncated,+error,-recv,-send,-data)")
     p.add_argument("--log-prefix",action='store_true',default=False,
                     help="Log prefix (timestamp/handler/resolver) (default: False)")
     args = p.parse_args()
