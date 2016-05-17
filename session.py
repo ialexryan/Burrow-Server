@@ -104,6 +104,7 @@ def handle_message(message):
 def got_begin_session():
 	session_id = uuid.uuid4().hex[-8:]
 	sessions[session_id] = Session(session_id)
+    print("Beginning session: " + str(session_id))
 	return "s-" + str(session_id)
 
 def got_forward_packets(components):
@@ -135,5 +136,6 @@ def got_request_packets(components):
 
 def got_end_session(components):
 	session_id = components.next()
+    print("Ending session: " + str(session_id))
 	del sessions[session_id]
 	return "s"
