@@ -127,24 +127,24 @@ class FixedResolver(BaseResolver):
 
             # Otherwise, handle as a new lookup.
             else:
-            parsed = parse_url(qname)
-            if isinstance(parsed, Failure):
-                response_dict = {'success': False, 'error': "You used the API incorrectly."}
-            elif isinstance(parsed, Other):
-                response_dict = {'success': False, 'error': "This is not an API endpoint"}
-            elif isinstance(parsed, Begin):
-		transmission_id = uuid.uuid4().hex[-8:]
-                self.active_transmissions[transmission_id] = Transmission(transmission_id)
-                print("Active transmissions are: " + str(self.active_transmissions))
-                response_dict = {'success': True, 'transmission_id': transmission_id}
-            elif isinstance(parsed, Continue):
-                try:
-                    success = self.active_transmissions[parsed.id].add_data(parsed.data, parsed.index)
+                parsed = parse_url(qname)
+                if isinstance(parsed, Failure):
+                    response_dict = {'success': False, 'error': "You used the API incorrectly."}
+                elif isinstance(parsed, Other):
+                    response_dict = {'success': False, 'error': "This is not an API endpoint"}
+                elif isinstance(parsed, Begin):
+                    transmission_id = uuid.uuid4().hex[-8:]
+                    self.active_transmissions[transmission_id] = Transmission(transmission_id)
                     print("Active transmissions are: " + str(self.active_transmissions))
-                    response_dict = {'success': True}
-                except KeyError:
-                    response_dict = {'success': False, 'error': "Tried to continue a transmission that doesn't exist."}
-            elif isinstance(parsed, End):
+                    response_dict = {'success': True, 'transmission_id': transmission_id}
+                elif isinstance(parsed, Continue):
+                    try:
+                        success = self.active_transmissions[parsed.id].add_data(parsed.data, parsed.index)
+                        print("Active transmissions are: " + str(self.active_transmissions))
+                        response_dict = {'success': True}
+                    except KeyError:
+                        response_dict = {'success': False, 'error': "Tried to continue a transmission that doesn't exist."}
+                elif isinstance(parsed, End):
                     print("Active transmissions are: " + str(self.active_transmissions))
                     transmission = self.active_transmissions.get(parsed.id)
                     response_dict = None
@@ -153,11 +153,11 @@ class FixedResolver(BaseResolver):
                         del self.active_transmissions[parsed.id]
                         final_contents = transmission.end(parsed.length)
                         print("Final contents: " + str(final_contents))
-                    response_packet = session.handle_message(final_contents)
-                    assert(is_domain_safe(response_packet))
-                    response_dict = {'success': True, 'contents': response_packet}
+                        response_packet = session.handle_message(final_contents)
+                        assert(is_domain_safe(response_packet))
+                        response_dict = {'success': True, 'contents': response_packet}
                     else:
-                    response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
+                        response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
                 # Cache the response in case of duplicate lookups
                 self.cache[qname] = response_dict
             zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
