@@ -110,12 +110,10 @@ def got_begin_session():
 def got_forward_packets(components):
 	session_id = components.next()
 	session = sessions[session_id]
-	try:
-            while True:
-	        packet = base64.b64decode(components.next())
+    packets = map(base64.b64decode, components)
+    for packet in packets:
+        # TODO: This only takes care of the last error?
 	        err = session.forward(packet)
-        except StopIteration:
-            pass
         if err == NO_ERROR:
 	    return "s"
         elif err == INVALID_PACKET:
