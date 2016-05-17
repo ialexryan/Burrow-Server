@@ -10,6 +10,7 @@ import sys
 from dnslib import RR
 from dnslib.label import DNSLabel
 from dnslib.server import DNSServer, DNSHandler, BaseResolver, DNSLogger
+from expiringdict import ExpiringDict
 
 import session
 
@@ -106,6 +107,7 @@ class FixedResolver(BaseResolver):
         fixed_zone = open("fixed_zone/primary.txt").read() + open("fixed_zone/tests.txt").read()
         self.fixedrrs = RR.fromZone(fixed_zone)
         self.active_transmissions = {}
+        self.cache = cache = ExpiringDict(max_len=1000, max_age_seconds=10)
 
     def resolve(self,request,handler):
         reply = request.reply()
@@ -119,6 +121,12 @@ class FixedResolver(BaseResolver):
                 print("Found a fixed record for " + str(a.rname))
                 reply.add_answer(a)
         if (not found_fixed_rr):
+            # If we recently responded to this lookup, be consistent.
+            if qname in self.cache:
+                response_dict = self.cache[qname]
+
+            # Otherwise, handle as a new lookup.
+            else:
             parsed = parse_url(qname)
             if isinstance(parsed, Failure):
                 response_dict = {'success': False, 'error': "You used the API incorrectly."}
@@ -149,6 +157,8 @@ class FixedResolver(BaseResolver):
                     response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
                 except AssertionError:
                     sys.exit(1)
+                # Cache the response in case of duplicate lookups
+                self.cache[qname] = response_dict
             zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
             print("We generated zone:\n" + zone)
             rrs = RR.fromZone(zone)
