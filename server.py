@@ -104,15 +104,15 @@ class Transmission:
     def __repr__(self):
         return "<Transmission " + self.id + ", " + str(self.data) + ">"
 
-class FixedResolver(BaseResolver):
+class BurrowResolver(BaseResolver):
     """
-        Respond with fixed response to some requests, and wildcard to all others.
+        Respond with fixed response to some requests, and treat others as Transmission layer traffic.
     """
     def __init__(self):
         fixed_zone = open("fixed_zone/primary.txt").read() + open("fixed_zone/tests.txt").read()
         self.fixedrrs = RR.fromZone(fixed_zone)
         self.active_transmissions = {}
-        self.cache = cache = ExpiringDict(max_len=1000, max_age_seconds=10)
+        self.cache = ExpiringDict(max_len=1000, max_age_seconds=10)
 
     def resolve(self,request,handler):
         reply = request.reply()
@@ -129,6 +129,7 @@ class FixedResolver(BaseResolver):
         if (not found_fixed_rr):
             # If we recently responded to this lookup, be consistent.
             if qname in self.cache:
+                LOG("Cache hit!")
                 response_dict = self.cache[qname]
 
             # Otherwise, handle as a new lookup.
@@ -196,18 +197,19 @@ if __name__ == '__main__':
                     help="Log prefix (timestamp/handler/resolver) (default: False)")
     args = p.parse_args()
     
-    resolver = FixedResolver()
+    resolver = BurrowResolver()
     logger = DNSLogger(args.log,args.log_prefix)
 
-    print("Starting Fixed Resolver (%s:%d) [%s]" % (
+    LOG("")
+    LOG("Starting Burrow Resolver (%s:%d) [%s]" % (
                         args.address or "*",
                         args.port,
                         "UDP" if args.notcp else "UDP/TCP"))
 
-    print("Using fixed records:")
-    for rr in resolver.fixedrrs:
-        print("    | ",rr.toZone().strip(),sep="")
-    print()
+    #print("Using fixed records:")
+    #for rr in resolver.fixedrrs:
+    #    print("    | ",rr.toZone().strip(),sep="")
+    #print()
 
     if args.udplen:
         DNSHandler.udplen = args.udplen
