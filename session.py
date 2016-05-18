@@ -9,6 +9,8 @@ from scapy.all import sr
 
 def LOG(s):
     print("        " + s)
+    with open("log.txt", "a") as f:
+        f.write("        " + s + "\n")
 
 NO_ERROR = 0
 INVALID_PACKET = 1

@@ -16,6 +16,8 @@ import session
 
 def LOG(s):
     print("    " + s)
+    with open("log.txt", "a") as f:
+        f.write("    " + s + "\n")
 
 Begin = collections.namedtuple('Begin', 'prefix')
 Continue = collections.namedtuple('Continue', 'data index id')
