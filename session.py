@@ -78,6 +78,7 @@ class Session:
             response = pair[1]
             response[IP].src = original_src
             response[protocol].sport = original_sport
+            response = IP(str(response))    #recalculate all the checksums
             self.pending_response_packets.append(base64.b64encode(str(response)))
 
         available_ports.append(port)  #return port to available pool
