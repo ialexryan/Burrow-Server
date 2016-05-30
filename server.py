@@ -86,14 +86,13 @@ class Transmission:
         self.id = id
         self.data = {} # {index: data}
         self.final_contents = ""  # this is filled in by the end() method
+
     def add_data(self, data, index):
         # Indices can arrive out of order
-        # Ignore duplicates
+        # Ignore data from indices we've already seen
         if (index not in self.data):
             self.data[index] = data
-            return True
-        else:
-            return False
+
     def end(self, length):
         if all (k in self.data for k in range(length)):
             for i in range(length):
@@ -101,6 +100,7 @@ class Transmission:
             return True
         else:
             return False
+
     def __repr__(self):
         return "<Transmission " + self.id + ", " + str(self.data) + ">"
 
