@@ -14,11 +14,20 @@ from expiringdict import ExpiringDict
 
 import session
 
+# This function is responsible for recording information from the
+# transmission layer and printing it to both console and log.txt.
+# TODO: this is probably blocking the main thread a lot.
 def LOG(s):
     print("    " + s)
     with open("log.txt", "a") as f:
         f.write("    " + s + "\n")
 
+# This function parses incoming DNS requests as per the Transmission
+# API format documented in README.md.
+# The Begin, Continue, and End API endpoints are the only endpoints
+# recognized. Requests that are properly formatted but refer to
+# unknown API endpoints are categorized as Other.
+# Incorrectly formatted requests are categorized as Failure.
 Begin = collections.namedtuple('Begin', 'prefix')
 Continue = collections.namedtuple('Continue', 'data index id')
 End = collections.namedtuple('End', 'length id')
@@ -61,6 +70,11 @@ def dict_to_attributes(d):
         output.append(str(key) + "=" + str(value))
     return output
 
+# These two functions are a somewhat clunky way of getting DNS
+# information into dnslib by turning it into text in the Zone File
+# format, which can then be easily parsed by dnslib.
+# TODO (low-pri): this should be eliminated and we should switch
+# to directly getting DNS information into dnslib using the built-in functions.
 def generate_TXT_zone_line(host, text):
     assert(host.endswith(".burrow.tech."))
     # Split the text into 250-char substrings if necessary
@@ -74,9 +88,9 @@ def generate_TXT_zone(host, text_list):
        output += generate_TXT_zone_line(host, t)
     return output
 
-def is_domain_safe(packet):
+def is_domain_safe(s):
     domain_safe_matcher = re.compile(r'[A-Za-z0-9-+/]').search
-    return bool(domain_safe_matcher(packet))
+    return bool(domain_safe_matcher(s))
 
 class Transmission:
     """
@@ -111,11 +125,12 @@ class BurrowResolver(BaseResolver):
     def __init__(self):
         fixed_zone = open("fixed_zone/primary.txt").read() + open("fixed_zone/tests.txt").read()
         self.fixedrrs = RR.fromZone(fixed_zone)
-        self.active_transmissions = {}
+        self.active_transmissions = {}  # Dictionary of Transmission objects.
+                                        # Their ID's are the keys, for easy/quick lookup.
         self.cache = ExpiringDict(max_len=1000, max_age_seconds=10)
 
     def resolve(self,request,handler):
-        reply = request.reply()  # the object that this function returns in the end, with modifications
+        reply = request.reply()  # the object that this function will return in the end, with modifications
         qname = request.q.qname  # the domain that was looked up
 
         print("Request for " + str(DNSLabel(qname.label[-5:])))
@@ -147,7 +162,7 @@ class BurrowResolver(BaseResolver):
         return reply
 
     def handle_transmission_api_message(self, qname):
-        # If we recently responded to this lookup, be consistent.
+        # If we recently responded to this lookup, we don't want to re-handle it.
         if qname in self.cache:
             LOG("Cache hit!")
             response_dict = self.cache[qname]
@@ -231,11 +246,6 @@ if __name__ == '__main__':
                         args.address or "*",
                         args.port,
                         "UDP" if args.notcp else "UDP/TCP"))
-
-    #print("Using fixed records:")
-    #for rr in resolver.fixedrrs:
-    #    print("    | ",rr.toZone().strip(),sep="")
-    #print()
 
     if args.udplen:
         DNSHandler.udplen = args.udplen
