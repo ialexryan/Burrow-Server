@@ -115,10 +115,8 @@ class BurrowResolver(BaseResolver):
         self.cache = ExpiringDict(max_len=1000, max_age_seconds=10)
 
     def resolve(self,request,handler):
-        # "reply" is the object that we'll return in the end.
-        reply = request.reply()
-        # "qname" is the domain that was looked up
-        qname = request.q.qname
+        reply = request.reply()  # the object that this function returns in the end, with modifications
+        qname = request.q.qname  # the domain that was looked up
 
         print("Request for " + str(DNSLabel(qname.label[-5:])))
 
@@ -139,9 +137,16 @@ class BurrowResolver(BaseResolver):
         if found_fixed_rr:
             return reply
 
-        # Alright, it must be a Transmission API message!
+        # Alright, if we've gotten here it must be a Transmission API message!
         assert(not found_fixed_rr)
+        response_dict = self.handle_transmission_api_message(qname)
+        zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
+        rrs = RR.fromZone(zone)
+        for rr in rrs:
+            reply.add_answer(rr)
+        return reply
 
+    def handle_transmission_api_message(self, qname):
         # If we recently responded to this lookup, be consistent.
         if qname in self.cache:
             LOG("Cache hit!")
@@ -186,11 +191,9 @@ class BurrowResolver(BaseResolver):
                     response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
             # Cache the response in case of duplicate lookups
             self.cache[qname] = response_dict
-        zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
-        rrs = RR.fromZone(zone)
-        for rr in rrs:
-            reply.add_answer(rr)
-        return reply
+        return response_dict
+
+
 
 if __name__ == '__main__':
 
