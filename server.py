@@ -85,6 +85,7 @@ class Transmission:
     def __init__(self, id):
         self.id = id
         self.data = {} # {index: data}
+        self.final_contents = ""  # this is filled in by the end() method
     def add_data(self, data, index):
         # Indices can arrive out of order
         # Ignore duplicates
@@ -95,12 +96,11 @@ class Transmission:
             return False
     def end(self, length):
         if all (k in self.data for k in range(length)):
-            self.completed = ""
             for i in range(length):
-                self.completed += self.data[i]
-            return self.completed
+                self.final_contents += self.data[i]
+            return True
         else:
-            return "ERROR: .end called early. Debug me now!"
+            return False
     def __repr__(self):
         return "<Transmission " + self.id + ", " + str(self.data) + ">"
 
@@ -157,12 +157,15 @@ class BurrowResolver(BaseResolver):
                     response_dict = None
                     if transmission is not None:
                         del self.active_transmissions[parsed.id]
-                        final_contents = transmission.end(parsed.length)
-                        LOG("Ending transmission " + str(parsed.id) +
-                            ". Final contents: " + ((final_contents[:15] + '...') if len(final_contents) > 15 else final_contents))
-                        response = session.handle_message(final_contents)
-                        assert(is_domain_safe(response))
-                        response_dict = {'success': True, 'contents': response}
+                        if transmission.end(parsed.length):
+                            final_contents = transmission.final_contents
+                            LOG("Ending transmission " + str(parsed.id) +
+                                ". Final contents: " + ((final_contents[:15] + '...') if len(final_contents) > 15 else final_contents))
+                            response = session.handle_message(final_contents)
+                            assert(is_domain_safe(response))
+                            response_dict = {'success': True, 'contents': response}
+                        else:
+                            response_dict = {'success': False, 'error': ".end called with length that didn't match number of .continue's received."}
                     else:
                         LOG("Error: tried to end a transmission that doesn't exist: " + str(parsed.id))
                         response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
