@@ -7,7 +7,7 @@ import collections
 import re
 import sys
 
-from dnslib import RR
+from dnslib import RR,RCODE
 from dnslib.label import DNSLabel
 from dnslib.server import DNSServer, DNSHandler, BaseResolver, DNSLogger
 from expiringdict import ExpiringDict
@@ -117,7 +117,14 @@ class BurrowResolver(BaseResolver):
     def resolve(self,request,handler):
         reply = request.reply()
         qname = request.q.qname
+
         print("Request for " + str(DNSLabel(qname.label[-5:])))
+
+        # First, we make sure the domain ends in burrow.tech.
+        # If not, we return an NXDOMAIN result.
+        if not qname.matchSuffix("burrow.tech"):
+            reply.header.rcode = RCODE.NXDOMAIN
+            return reply
        
         found_fixed_rr = False
         for rr in self.fixedrrs:
