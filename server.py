@@ -115,7 +115,9 @@ class BurrowResolver(BaseResolver):
         self.cache = ExpiringDict(max_len=1000, max_age_seconds=10)
 
     def resolve(self,request,handler):
+        # "reply" is the object that we'll return in the end.
         reply = request.reply()
+        # "qname" is the domain that was looked up
         qname = request.q.qname
 
         print("Request for " + str(DNSLabel(qname.label[-5:])))
@@ -126,6 +128,7 @@ class BurrowResolver(BaseResolver):
             reply.header.rcode = RCODE.NXDOMAIN
             return reply
        
+        # Next, we try to look up the domain in our list of fixed test records.
         found_fixed_rr = False
         for rr in self.fixedrrs:
             a = copy.copy(rr)
@@ -133,56 +136,61 @@ class BurrowResolver(BaseResolver):
                 found_fixed_rr = True
                 LOG("Found a fixed record for " + str(a.rname))
                 reply.add_answer(a)
-        if (not found_fixed_rr):
-            # If we recently responded to this lookup, be consistent.
-            if qname in self.cache:
-                LOG("Cache hit!")
-                response_dict = self.cache[qname]
+        if found_fixed_rr:
+            return reply
 
-            # Otherwise, handle as a new lookup.
-            else:
-                parsed = parse_url(qname)
-                if isinstance(parsed, Failure):
-                    response_dict = {'success': False, 'error': "You used the API incorrectly."}
-                elif isinstance(parsed, Other):
-                    response_dict = {'success': False, 'error': "This is not an API endpoint"}
-                elif isinstance(parsed, Begin):
-                    transmission_id = uuid.uuid4().hex[-8:]
-                    self.active_transmissions[transmission_id] = Transmission(transmission_id)
-                    LOG("Began transmission with id: " + str(transmission_id))
-                    response_dict = {'success': True, 'transmission_id': transmission_id}
-                elif isinstance(parsed, Continue):
-                    try:
-                        self.active_transmissions[parsed.id].add_data(parsed.data, parsed.index)
-                        LOG("Continuing transmission " + str(parsed.id))
-                        response_dict = {'success': True}
-                    except KeyError:
-                        LOG("Error: tried to continue a transmission that doesn't exist: " + str(parsed.id))
-                        response_dict = {'success': False, 'error': "Tried to continue a transmission that doesn't exist."}
-                elif isinstance(parsed, End):
-                    transmission = self.active_transmissions.get(parsed.id)
-                    response_dict = None
-                    if transmission is not None:
-                        del self.active_transmissions[parsed.id]
-                        if transmission.end(parsed.length):
-                            final_contents = transmission.final_contents
-                            LOG("Ending transmission " + str(parsed.id) +
-                                ". Final contents: " + ((final_contents[:15] + '...') if len(final_contents) > 15 else final_contents))
-                            response = session.handle_message(final_contents)
-                            assert(is_domain_safe(response))
-                            response_dict = {'success': True, 'contents': response}
-                        else:
-                            response_dict = {'success': False, 'error': ".end called with length that didn't match number of .continue's received."}
+        # Alright, it must be a Transmission API message!
+        assert(not found_fixed_rr)
+
+        # If we recently responded to this lookup, be consistent.
+        if qname in self.cache:
+            LOG("Cache hit!")
+            response_dict = self.cache[qname]
+
+        # Otherwise, handle as a new lookup.
+        else:
+            parsed = parse_url(qname)
+            if isinstance(parsed, Failure):
+                response_dict = {'success': False, 'error': "You used the API incorrectly."}
+            elif isinstance(parsed, Other):
+                response_dict = {'success': False, 'error': "This is not an API endpoint"}
+            elif isinstance(parsed, Begin):
+                transmission_id = uuid.uuid4().hex[-8:]
+                self.active_transmissions[transmission_id] = Transmission(transmission_id)
+                LOG("Began transmission with id: " + str(transmission_id))
+                response_dict = {'success': True, 'transmission_id': transmission_id}
+            elif isinstance(parsed, Continue):
+                try:
+                    self.active_transmissions[parsed.id].add_data(parsed.data, parsed.index)
+                    LOG("Continuing transmission " + str(parsed.id))
+                    response_dict = {'success': True}
+                except KeyError:
+                    LOG("Error: tried to continue a transmission that doesn't exist: " + str(parsed.id))
+                    response_dict = {'success': False, 'error': "Tried to continue a transmission that doesn't exist."}
+            elif isinstance(parsed, End):
+                transmission = self.active_transmissions.get(parsed.id)
+                response_dict = None
+                if transmission is not None:
+                    del self.active_transmissions[parsed.id]
+                    if transmission.end(parsed.length):
+                        final_contents = transmission.final_contents
+                        LOG("Ending transmission " + str(parsed.id) +
+                            ". Final contents: " + ((final_contents[:15] + '...') if len(final_contents) > 15 else final_contents))
+                        response = session.handle_message(final_contents)
+                        assert(is_domain_safe(response))
+                        response_dict = {'success': True, 'contents': response}
                     else:
-                        LOG("Error: tried to end a transmission that doesn't exist: " + str(parsed.id))
-                        response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
-                # Cache the response in case of duplicate lookups
-                self.cache[qname] = response_dict
-            zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
-            rrs = RR.fromZone(zone)
-            rr = rrs[0]
-            for rr in rrs:
-                reply.add_answer(rr)
+                        response_dict = {'success': False, 'error': ".end called with length that didn't match number of .continue's received."}
+                else:
+                    LOG("Error: tried to end a transmission that doesn't exist: " + str(parsed.id))
+                    response_dict = {'success': False, 'error': "Tried to end a transmission that doesn't exist."}
+            # Cache the response in case of duplicate lookups
+            self.cache[qname] = response_dict
+        zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
+        rrs = RR.fromZone(zone)
+        rr = rrs[0]
+        for rr in rrs:
+            reply.add_answer(rr)
         return reply
 
 if __name__ == '__main__':
