@@ -188,7 +188,6 @@ class BurrowResolver(BaseResolver):
             self.cache[qname] = response_dict
         zone = generate_TXT_zone(str(qname), dict_to_attributes(response_dict))
         rrs = RR.fromZone(zone)
-        rr = rrs[0]
         for rr in rrs:
             reply.add_answer(rr)
         return reply
