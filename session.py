@@ -7,13 +7,9 @@ from scapy.layers.inet import TCP
 from scapy.layers.inet import UDP
 from scapy.all import sr
 
-# This function is responsible for recording information from the
-# transmission layer and printing it to both console and log.txt.
-# TODO: this is probably blocking the main thread a lot.
+from burrow_logging import burrow_log
 def LOG(s):
-    print("        " + s)
-    with open("log.txt", "a") as f:
-        f.write("        " + s + "\n")
+    burrow_log(s, 8)
 
 NO_ERROR = 0
 INVALID_PACKET = 1

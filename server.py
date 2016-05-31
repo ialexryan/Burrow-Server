@@ -13,14 +13,9 @@ from dnslib.server import DNSServer, DNSHandler, BaseResolver, DNSLogger
 from expiringdict import ExpiringDict
 
 import session
-
-# This function is responsible for recording information from the
-# transmission layer and printing it to both console and log.txt.
-# TODO: this is probably blocking the main thread a lot.
+from burrow_logging import burrow_log
 def LOG(s):
-    print("    " + s)
-    with open("log.txt", "a") as f:
-        f.write("    " + s + "\n")
+    burrow_log(s, 4)
 
 # This function parses incoming DNS requests as per the Transmission
 # API format documented in README.md.
@@ -133,7 +128,7 @@ class BurrowResolver(BaseResolver):
         reply = request.reply()  # the object that this function will return in the end, with modifications
         qname = request.q.qname  # the domain that was looked up
 
-        print("Request for " + str(DNSLabel(qname.label[-5:])))
+        burrow_log("Request for " + str(DNSLabel(qname.label[-5:])), 0)
 
         # First, we make sure the domain ends in burrow.tech.
         # If not, we return an NXDOMAIN result.
@@ -241,11 +236,11 @@ if __name__ == '__main__':
     resolver = BurrowResolver()
     logger = DNSLogger(args.log,args.log_prefix)
 
-    LOG("")
-    LOG("Starting Burrow Resolver (%s:%d) [%s]" % (
+    burrow_log("", 0)
+    burrow_log("Starting Burrow Resolver (%s:%d) [%s]" % (
                         args.address or "*",
                         args.port,
-                        "UDP" if args.notcp else "UDP/TCP"))
+                        "UDP" if args.notcp else "UDP/TCP"), 0)
 
     if args.udplen:
         DNSHandler.udplen = args.udplen
