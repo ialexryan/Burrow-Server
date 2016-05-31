@@ -122,7 +122,7 @@ class BurrowResolver(BaseResolver):
         self.fixedrrs = RR.fromZone(fixed_zone)
         self.active_transmissions = {}  # Dictionary of Transmission objects.
                                         # Their ID's are the keys, for easy/quick lookup.
-        self.cache = ExpiringDict(max_len=1000, max_age_seconds=10)
+        self.cache = ExpiringDict(max_len=100000, max_age_seconds=70)
 
     def resolve(self,request,handler):
         reply = request.reply()  # the object that this function will return in the end, with modifications
