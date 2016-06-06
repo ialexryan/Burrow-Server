@@ -6,6 +6,7 @@ import uuid
 import collections
 import re
 import sys
+import multiprocessing
 
 from dnslib import RR,RCODE
 from dnslib.label import DNSLabel
@@ -124,6 +125,7 @@ class BurrowResolver(BaseResolver):
         self.active_transmissions = {}  # Dictionary of Transmission objects.
                                         # Their ID's are the keys, for easy/quick lookup.
         self.cache = ExpiringDict(max_len=100000, max_age_seconds=70)
+        self.transmission_handler_lock = multiprocessing.Lock()
 
     def resolve(self,request,handler):
         reply = request.reply()  # the object that this function will return in the end, with modifications
@@ -158,10 +160,12 @@ class BurrowResolver(BaseResolver):
         return reply
 
     def handle_transmission_api_message(self, qname):
+        self.transmission_handler_lock.acquire()
         # If we recently responded to this lookup, we don't want to re-handle it.
         if qname in self.cache:
             LOG("Cache hit!")
             response_dict = self.cache[qname]
+            self.transmission_handler_lock.release()
             return response_dict
 
         # Otherwise, handle as a new lookup.
@@ -208,6 +212,7 @@ class BurrowResolver(BaseResolver):
 
         # Cache the response in case of duplicate lookups
         self.cache[qname] = response_dict
+        self.transmission_handler_lock.release()
         return response_dict
 
 
@@ -233,7 +238,7 @@ if __name__ == '__main__':
     p.add_argument("--log-prefix",action='store_true',default=False,
                     help="Log prefix (timestamp/handler/resolver) (default: False)")
     args = p.parse_args()
-    
+
     resolver = BurrowResolver()
     logger = DNSLogger(args.log,args.log_prefix)
 
