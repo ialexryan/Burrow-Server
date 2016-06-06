@@ -1,6 +1,8 @@
 import uuid
 import base64
 import multiprocessing
+import Queue
+import sys
 
 from scapy import route
 from scapy.layers.inet import IP
@@ -16,9 +18,10 @@ NO_ERROR = 0
 INVALID_PACKET = 1
 NO_FREE_PORTS = 2
 
-# TODO: Currently sending some number of packets each time. Should later
-# optimize this number and also make sure the size is under 64 kb.
-SEND_N_PACKETS = 5
+# Technically, DNS responses can be up to 64KB. We aren't looking to
+# find that limit here, though. This would be a good value to experiment
+# with optimizing.
+MAX_RESPONSE_SIZE = 8000
 
 SR_TIMEOUT = 60  # seconds
 
@@ -27,15 +30,26 @@ available_ports = range(30000,50000)     #ports will be removed from this list w
 sessions = {}
 
 
+def sizeof_list(l):
+    size = 0
+    for i in l:
+        size += sys.getsizeof(i)
+    size += sys.getsizeof(l)
+    return size
+
 class Session:
     def __init__(self, id):
         self.id = id
-        self.pending_response_packets = []
+        self.pending_response_packets = multiprocessing.Queue()
 
     def request(self):
         response_packets = []
-        while (len(self.pending_response_packets) != 0) and (len(response_packets) < SEND_N_PACKETS):
-            response_packets.append(self.pending_response_packets.pop(0))
+        while sizeof_list(response_packets) < MAX_RESPONSE_SIZE:
+            try:
+                r_pkt = self.pending_response_packets.get_nowait()
+                response_packets.append(r_pkt)
+            except Queue.Empty:
+                break
         return response_packets
 
     def sendreceive_packet_with_timeout(self, secs, packet, original_src, original_sport, protocol, spoofed_sport):
@@ -61,7 +75,8 @@ class Session:
             response[IP].src = original_src
             response[protocol].sport = original_sport
             response = IP(str(response))    #recalculate all the checksums
-            self.pending_response_packets.append(base64.b64encode(str(response)))
+            self.pending_response_packets.put(base64.b64encode(str(response)))
+            LOG("Appended response packet, session " + self.id + " (" + str(id(self)) + ") now has " + str(self.pending_response_packets.qsize()) + " packets waiting to be pulled from list " + str(id(self.pending_response_packets)))
         available_ports.append(spoofed_sport)  #return port to available pool
 
     def forward(self, message):
@@ -155,7 +170,7 @@ def got_request_packets(components):
         return "f-2-Session_identifier_`" + str(session_id) + "`_is_unknown."
     session = sessions[session_id]
     data = session.request()
-    LOG("Session " + str(session_id) + " requested packets, replying with " + str(len(data)) + " packets.")
+    LOG("Session " + str(session_id) + " requested packets, replying with " + str(len(data)) + " packets in " + str(sizeof_list(data)) + " bytes.")
     response = "s"
     for packet in data:
         response += "-" + packet
