@@ -1,5 +1,6 @@
 import uuid
 import base64
+import multiprocessing
 
 from scapy import route
 from scapy.layers.inet import IP
@@ -19,9 +20,12 @@ NO_FREE_PORTS = 2
 # optimize this number and also make sure the size is under 64 kb.
 SEND_N_PACKETS = 5
 
+SR_TIMEOUT = 60  # seconds
+
 SERVER_IP = "131.215.172.230"
 available_ports = range(30000,50000)     #ports will be removed from this list while in use
 sessions = {}
+
 
 class Session:
     def __init__(self, id):
@@ -33,6 +37,32 @@ class Session:
         while (len(self.pending_response_packets) != 0) and (len(response_packets) < SEND_N_PACKETS):
             response_packets.append(self.pending_response_packets.pop(0))
         return response_packets
+
+    def sendreceive_packet_with_timeout(self, secs, packet, original_src, original_sport, protocol, spoofed_sport):
+        p = multiprocessing.Process(target=self.sendreceive_packet, args=(packet, original_src, original_sport, protocol, spoofed_sport,))
+        p.start()
+        p.join(secs)
+        if p.is_alive():
+            LOG("Warning: long-running sr process terminated.")
+            p.terminate()
+            p.join()
+
+    def sendreceive_packet(self, packet, original_src, original_sport, protocol, spoofed_sport):
+        #send packet and receive responses.
+        #self.ans will contain a list of tuples of sent packets and their responses
+        #self.unans will contain a list of unanswered packets
+        LOG("About to forward packet for " + self.id)
+        ans, unans = sr(packet, verbose=0)
+        #un-spoof the source IP address and port,
+        #then add to the list of packets waiting to be sent back
+        for pair in ans:
+            LOG("Received response packet for " + self.id)
+            response = pair[1]
+            response[IP].src = original_src
+            response[protocol].sport = original_sport
+            response = IP(str(response))    #recalculate all the checksums
+            self.pending_response_packets.append(base64.b64encode(str(response)))
+        available_ports.append(spoofed_sport)  #return port to available pool
 
     def forward(self, message):
         pkt = IP(message)        #parse the binary data to a scapy IP packet
@@ -67,22 +97,9 @@ class Session:
         # print "After spoofing, packet looks like:"
         # pkt.show2()
 
-        #send packet and receive responses.
-        #self.ans will contain a list of tuples of sent packets and their responses
-        #self.unans will contain a list of unanswered packets
-        #note: we may need to do some work to make this asynchronous
-        self.ans, self.unans = sr(pkt, verbose=0)
+        p = multiprocessing.Process(target=self.sendreceive_packet_with_timeout, args=(SR_TIMEOUT, pkt, original_src, original_sport, protocol, port,))
+        p.start()
 
-        #un-spoof the source IP address and port,
-        #then add to the list of packets waiting to be sent back
-        for pair in self.ans:
-            response = pair[1]
-            response[IP].src = original_src
-            response[protocol].sport = original_sport
-            response = IP(str(response))    #recalculate all the checksums
-            self.pending_response_packets.append(base64.b64encode(str(response)))
-
-        available_ports.append(port)  #return port to available pool
         return NO_ERROR
 
 
