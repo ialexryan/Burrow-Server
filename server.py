@@ -63,6 +63,7 @@ def dict_to_attributes(d):
     output = []
     for (key, value) in d.iteritems():
         output.append(str(key) + "=" + str(value))
+    output.append("$count=" + str(len(d)))
     return output
 
 # These two functions are a somewhat clunky way of getting DNS
